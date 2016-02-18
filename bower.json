@@ -1,0 +1,25 @@
+{
+  "name": "cubecubeball",
+  "authors": [
+    "Yuval Greenfield <ubershmekel@gmail.com>"
+  ],
+  "description": "Soccer with cubes",
+  "main": "index.html",
+  "moduleType": [
+    "globals"
+  ],
+  "license": "MIT",
+  "homepage": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "cannon.js": "^0.6.2",
+    "three.js": "^0.74.0"
+  }
+}
