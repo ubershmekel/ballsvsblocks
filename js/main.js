@@ -9,6 +9,11 @@ var blocker = document.getElementById( 'blocker' );
 var instructions = document.getElementById( 'instructions' );
 
 var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
+var colors = {};
+colors.green = 0x99ff99;
+colors.red =   0xff9999;
+colors.blue =  0x9999ff;
+colors.skyBlue = 0xddddff;
 
 if ( havePointerLock ) {
 
@@ -148,7 +153,7 @@ function init() {
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
     scene = new THREE.Scene();
-    scene.fog = new THREE.Fog( 0x000000, 0, 500 );
+    scene.fog = new THREE.Fog( colors.skyBlue, 0, 500 );
 
     var ambient = new THREE.AmbientLight( 0x333333 );
     scene.add( ambient );
@@ -181,7 +186,10 @@ function init() {
     geometry = new THREE.PlaneGeometry( 300, 300, 50, 50 );
     geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
 
-    material = new THREE.MeshLambertMaterial( { color: 0xdddddd } );
+        
+    material = new THREE.MeshLambertMaterial( { color: colors.green } );
+    var redMaterial = new THREE.MeshLambertMaterial( { color: colors.red } );
+    var blueMaterial = new THREE.MeshLambertMaterial( { color: colors.blue } );
 
     mesh = new THREE.Mesh( geometry, material );
     mesh.castShadow = true;
@@ -202,13 +210,13 @@ function init() {
     var halfExtents = new CANNON.Vec3(1,1,1);
     var boxShape = new CANNON.Box(halfExtents);
     var boxGeometry = new THREE.BoxGeometry(halfExtents.x*2,halfExtents.y*2,halfExtents.z*2);
-    for(var i=0; i<7; i++){
+    for(var i = 0; i < 7; i++){
         var x = (Math.random()-0.5)*20;
         var y = 1 + (Math.random()-0.5)*1;
         var z = (Math.random()-0.5)*20;
         var boxBody = new CANNON.Body({ mass: 5 });
         boxBody.addShape(boxShape);
-        var boxMesh = new THREE.Mesh( boxGeometry, material );
+        var boxMesh = new THREE.Mesh( boxGeometry, redMaterial );
         world.add(boxBody);
         scene.add(boxMesh);
         boxBody.position.set(x,y,z);
