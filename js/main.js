@@ -14,6 +14,8 @@ colors.green = 0x99ff99;
 colors.red =   0xff9999;
 colors.blue =  0x9999ff;
 colors.skyBlue = 0xddddff;
+var redMaterial = new THREE.MeshLambertMaterial( { color: colors.red } );
+var blueMaterial = new THREE.MeshLambertMaterial( { color: colors.blue } );
 
 if ( havePointerLock ) {
 
@@ -142,7 +144,7 @@ function initCannon(){
 
     // Create a plane
     var groundShape = new CANNON.Plane();
-    var groundBody = new CANNON.Body({ mass: 0 });
+    var groundBody = new CANNON.Body({ mass: 0, material: physicsMaterial });
     groundBody.addShape(groundShape);
     groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
     world.add(groundBody);
@@ -188,8 +190,6 @@ function init() {
 
         
     material = new THREE.MeshLambertMaterial( { color: colors.green } );
-    var redMaterial = new THREE.MeshLambertMaterial( { color: colors.red } );
-    var blueMaterial = new THREE.MeshLambertMaterial( { color: colors.blue } );
 
     mesh = new THREE.Mesh( geometry, material );
     mesh.castShadow = true;
@@ -298,23 +298,29 @@ var ballShape = new CANNON.Sphere(0.2);
 var ballGeometry = new THREE.SphereGeometry(ballShape.radius, 32, 32);
 var shootDirection = new THREE.Vector3();
 var shootVelo = 15;
-var projector = new THREE.Projector();
+//var projector = new THREE.Projector();
 function getShootDir(targetVec){
     var vector = targetVec;
     targetVec.set(0,0,1);
-    projector.unprojectVector(vector, camera);
+    //projector.unprojectVector(vector, camera);
+    vector.unproject(camera);
     var ray = new THREE.Ray(sphereBody.position, vector.sub(sphereBody.position).normalize() );
     targetVec.copy(ray.direction);
 }
+
+var cannonBallMat = new CANNON.Material();
+var cannonBallMatContact = new CANNON.ContactMaterial(physicsMaterial, cannonBallMat, { friction: 0.0, restitution: 0.99 });
+world.addContactMaterial(cannonBallMatContact);
 
 window.addEventListener("click",function(e){
     if(controls.enabled==true){
         var x = sphereBody.position.x;
         var y = sphereBody.position.y;
         var z = sphereBody.position.z;
-        var ballBody = new CANNON.Body({ mass: 1 });
+        var ballBody = new CANNON.Body({ mass: 1, material: cannonBallMat });
         ballBody.addShape(ballShape);
-        var ballMesh = new THREE.Mesh( ballGeometry, material );
+        ballBody.linearDamping = 0.01;
+        var ballMesh = new THREE.Mesh( ballGeometry, blueMaterial );
         world.add(ballBody);
         scene.add(ballMesh);
         ballMesh.castShadow = true;
