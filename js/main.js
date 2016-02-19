@@ -8,6 +8,22 @@ var controls,time = Date.now();
 var blocker = document.getElementById( 'blocker' );
 var instructions = document.getElementById( 'instructions' );
 
+var stats;
+var initStats = function() {
+
+    stats = new Stats();
+    stats.setMode( 0 ); // 0: fps, 1: ms, 2: mb
+
+    // align top-left
+    stats.domElement.style.position = 'absolute';
+    stats.domElement.style.left = '0px';
+    stats.domElement.style.top = '0px';
+
+    document.body.appendChild( stats.domElement );
+};
+
+initStats();
+
 var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
 var colors = {};
 colors.green = 0x99ff99;
@@ -271,18 +287,19 @@ function onWindowResize() {
 
 var dt = 1/60;
 function animate() {
+    stats.begin();
     requestAnimationFrame( animate );
     if(controls.enabled){
         world.step(dt);
 
         // Update ball positions
-        for(var i=0; i<balls.length; i++){
+        for(var i=0; i < balls.length; i++){
             ballMeshes[i].position.copy(balls[i].position);
             ballMeshes[i].quaternion.copy(balls[i].quaternion);
         }
 
         // Update box positions
-        for(var i=0; i<boxes.length; i++){
+        for(var i=0; i < boxes.length; i++){
             boxMeshes[i].position.copy(boxes[i].position);
             boxMeshes[i].quaternion.copy(boxes[i].quaternion);
         }
@@ -291,7 +308,7 @@ function animate() {
     controls.update( Date.now() - time );
     renderer.render( scene, camera );
     time = Date.now();
-
+    stats.end();
 }
 
 var ballShape = new CANNON.Sphere(0.2);
@@ -309,35 +326,55 @@ function getShootDir(targetVec){
 }
 
 var cannonBallMat = new CANNON.Material();
-var cannonBallMatContact = new CANNON.ContactMaterial(physicsMaterial, cannonBallMat, { friction: 0.0, restitution: 0.99 });
+var cannonBallMatContact = new CANNON.ContactMaterial(physicsMaterial, cannonBallMat, { friction: 0.0, restitution: 0.8 });
 world.addContactMaterial(cannonBallMatContact);
 
-window.addEventListener("click",function(e){
-    if(controls.enabled==true){
-        var x = sphereBody.position.x;
-        var y = sphereBody.position.y;
-        var z = sphereBody.position.z;
-        var ballBody = new CANNON.Body({ mass: 1, material: cannonBallMat });
-        ballBody.addShape(ballShape);
-        ballBody.linearDamping = 0.01;
-        var ballMesh = new THREE.Mesh( ballGeometry, blueMaterial );
-        world.add(ballBody);
-        scene.add(ballMesh);
-        ballMesh.castShadow = true;
-        ballMesh.receiveShadow = true;
-        balls.push(ballBody);
-        ballMeshes.push(ballMesh);
-        getShootDir(shootDirection);
-        ballBody.velocity.set(  shootDirection.x * shootVelo,
-                                shootDirection.y * shootVelo,
-                                shootDirection.z * shootVelo);
+var isMouseDown = false;
+window.addEventListener("mousedown",function(e) {
+    isMouseDown = true;
+});
+window.addEventListener("mouseup",function(e) {
+    isMouseDown = false;
+});
 
-        // Move the ball outside the player sphere
-        x += shootDirection.x * (sphereShape.radius*1.02 + ballShape.radius);
-        y += shootDirection.y * (sphereShape.radius*1.02 + ballShape.radius);
-        z += shootDirection.z * (sphereShape.radius*1.02 + ballShape.radius);
-        ballBody.position.set(x,y,z);
-        ballMesh.position.set(x,y,z);
+world.addEventListener("preStep", function(e) {
+    if(controls.enabled && isMouseDown){
+        shootBall();
     }
 });
+
+var maxBalls = 100;
+
+var shootBall = function() {
+    if(balls.length >= maxBalls) {
+        var bbody = balls.shift();
+        world.remove(bbody);
+        var bmesh = ballMeshes.shift();
+        scene.remove(bmesh);
+    }
+    var x = sphereBody.position.x;
+    var y = sphereBody.position.y;
+    var z = sphereBody.position.z;
+    var ballBody = new CANNON.Body({ mass: 1, material: cannonBallMat });
+    ballBody.addShape(ballShape);
+    ballBody.linearDamping = 0.01;
+    var ballMesh = new THREE.Mesh( ballGeometry, blueMaterial );
+    world.add(ballBody);
+    scene.add(ballMesh);
+    ballMesh.castShadow = true;
+    ballMesh.receiveShadow = true;
+    balls.push(ballBody);
+    ballMeshes.push(ballMesh);
+    getShootDir(shootDirection);
+    ballBody.velocity.set(  shootDirection.x * shootVelo,
+                            shootDirection.y * shootVelo,
+                            shootDirection.z * shootVelo);
+
+    // Move the ball outside the player sphere
+    x += shootDirection.x * (sphereShape.radius*1.02 + ballShape.radius);
+    y += shootDirection.y * (sphereShape.radius*1.02 + ballShape.radius);
+    z += shootDirection.z * (sphereShape.radius*1.02 + ballShape.radius);
+    ballBody.position.set(x,y,z);
+    ballMesh.position.set(x,y,z);
+};
 

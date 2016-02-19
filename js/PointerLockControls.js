@@ -5,8 +5,8 @@
  var PointerLockControls = function ( camera, cannonBody ) {
 
     var eyeYPos = 2; // eyes are 2 meters above the ground
-    var velocityFactor = 0.2;
-    var jumpVelocity = 20;
+    var velocityFactor = 0.9;
+    var jumpVelocity = 4;
     var scope = this;
 
     var pitchObject = new THREE.Object3D();
@@ -24,6 +24,7 @@
     var moveRight = false;
 
     var canJump = false;
+    var moveUp = false;
 
     var contactNormal = new CANNON.Vec3(); // Normal in the contact, pointing *out* of whatever the player touched
     var upAxis = new CANNON.Vec3(0,1,0);
@@ -83,10 +84,11 @@
                 break;
 
             case 32: // space
-                if ( canJump === true ){
-                    velocity.y = jumpVelocity;
-                }
-                canJump = false;
+                moveUp = true;
+                //if ( canJump === true ){
+                //    velocity.y = jumpVelocity;
+                //}
+                //canJump = false;
                 break;
         }
 
@@ -115,7 +117,9 @@
             case 68: // d
                 moveRight = false;
                 break;
-
+            case 32: // space
+                moveUp = false;
+                break;
         }
 
     };
@@ -159,6 +163,10 @@
         if ( moveRight ){
             inputVelocity.x = velocityFactor * delta;
         }
+        if (moveUp) {
+            cannonBody.force.y = 300;
+            //velocity.y = jumpVelocity;
+        }
 
         // Convert velocity to world coordinates
         euler.x = pitchObject.rotation.x;
@@ -173,5 +181,8 @@
         velocity.z += inputVelocity.z;
 
         yawObject.position.copy(cannonBody.position);
+        //cannonBody.force.x = 0;
+        //cannonBody.force.y = 20;
+        //cannonBody.force.z = 0;
     };
 };

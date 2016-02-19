@@ -20,6 +20,7 @@
   ],
   "dependencies": {
     "cannon.js": "^0.6.2",
-    "three.js": "^0.74.0"
+    "three.js": "^0.74.0",
+    "stats.js": "*"
   }
 }
