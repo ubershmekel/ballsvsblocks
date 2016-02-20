@@ -223,13 +223,13 @@ function init() {
     window.addEventListener( 'resize', onWindowResize, false );
 
     // Add boxes
-    var halfExtents = new CANNON.Vec3(1,1,1);
+    var halfExtents = new CANNON.Vec3(1, 3, 1);
     var boxShape = new CANNON.Box(halfExtents);
-    var boxGeometry = new THREE.BoxGeometry(halfExtents.x*2,halfExtents.y*2,halfExtents.z*2);
-    for(var i = 0; i < 7; i++){
-        var x = (Math.random()-0.5)*20;
-        var y = 1 + (Math.random()-0.5)*1;
-        var z = (Math.random()-0.5)*20;
+    var boxGeometry = new THREE.BoxGeometry(halfExtents.x * 2, halfExtents.y * 2, halfExtents.z * 2);
+    for(var i = 0; i < 40; i++){
+        var x = (Math.random()-0.5) * 60;
+        var y = halfExtents.y;
+        var z = (Math.random()-0.5) * 60;
         var boxBody = new CANNON.Body({ mass: 5 });
         boxBody.addShape(boxShape);
         var boxMesh = new THREE.Mesh( boxGeometry, redMaterial );
