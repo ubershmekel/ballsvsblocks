@@ -86,8 +86,8 @@ var requirePointerLock = function() {
  var PointerLockControls = function ( camera, cannonBody ) {
     this.enabled = true;
     var eyeYPos = 2; // eyes are 2 meters above the ground
-    var velocityFactor = 0.9;
-    var jumpVelocity = 4;
+    var velocityFactor = 0.6;
+    var jumpForce = 200;
     var scope = this;
 
     var pitchObject = new THREE.Object3D();
@@ -201,7 +201,7 @@ var requirePointerLock = function() {
             inputVelocity.x = velocityFactor * delta;
         }
         if (commandsCalled[commands.fly]) {
-            cannonBody.force.y = 300 * delta;
+            cannonBody.force.y = jumpForce;
             //velocity.y = jumpVelocity;
         }
 

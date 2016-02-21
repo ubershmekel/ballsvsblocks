@@ -69,7 +69,7 @@ function initCannon() {
     else
         world.solver = solver;
 
-    world.gravity.set(0,-20,0);
+    world.gravity.set(0, -20, 0);
     world.broadphase = new CANNON.NaiveBroadphase();
 
     // Create a slippery material (friction coefficient = 0.0)
@@ -95,11 +95,6 @@ function initCannon() {
     sphereBody.linearDamping = 0.9;
     world.add(sphereBody);
 
-    world.addEventListener("preStep", function(e) {
-        if(controls.enabled && isMouseDown){
-            shootBall();
-        }
-    });
 }
 
 var rendererId = "renderer";
@@ -168,6 +163,10 @@ var initPlane = function() {
     game.createPlane();
 }
 
+var isBoxFallen = function(boxBody) {
+    return Math.abs(boxBody.quaternion.x) > 0.5 || Math.abs(boxBody.quaternion.z) > 0.5;
+}
+
 function init() {
     initPlane();
     balls = [];
@@ -191,7 +190,7 @@ function init() {
     };
     game.createBox = function () {
         var x = (Math.random()-0.5) * 60;
-        var y = halfExtents.y;
+        var y = halfExtents.y + 10;
         var z = (Math.random()-0.5) * 60;
         var boxBody = new CANNON.Body({ mass: 5 });
         boxBody.addShape(boxShape);
@@ -227,10 +226,17 @@ function animate() {
         for(var i=0; i < boxes.length; i++){
             boxMeshes[i].position.copy(boxes[i].position);
             boxMeshes[i].quaternion.copy(boxes[i].quaternion);
+            if(isBoxFallen(boxes[i])) {
+                //console.log('boom');
+                boxMeshes[i].material = blueMaterial;
+            }
         }
     }
 
     controls.update( Date.now() - time );
+    if(controls.enabled && isMouseDown){
+        shootBall();
+    }
     renderer.render( scene, camera );
     time = Date.now();
     stats.end();
