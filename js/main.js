@@ -9,6 +9,7 @@ var balls;
 var ballMeshes;
 var boxes;
 var boxMeshes;
+var light;
 
 var camera, scene, renderer;
 var planeGeometry, material, mesh;
@@ -45,89 +46,9 @@ var initControls = function() {
         resetGame();
     };
 
-    initPointerLock();
     controls = new PointerLockControls( camera , sphereBody );
     scene.add( controls.getObject() );
 }
-
-var initPointerLock = function() {
-    var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
-    if ( havePointerLock ) {
-        var element = document.body;
-        var pointerlockchange = function ( event ) {
-            if ( document.pointerLockElement === element || document.mozPointerLockElement === element || document.webkitPointerLockElement === element ) {
-
-                controls.enabled = true;
-
-                blocker.style.display = 'none';
-
-            } else {
-
-                controls.enabled = false;
-
-                blocker.style.display = '-webkit-box';
-                blocker.style.display = '-moz-box';
-                blocker.style.display = 'box';
-
-                instructions.style.display = '';
-
-            }
-
-        };
-
-        var pointerlockerror = function ( event ) {
-            instructions.style.display = '';
-        };
-
-        // Hook pointer lock state change events
-        document.addEventListener( 'pointerlockchange', pointerlockchange, false );
-        document.addEventListener( 'mozpointerlockchange', pointerlockchange, false );
-        document.addEventListener( 'webkitpointerlockchange', pointerlockchange, false );
-
-        document.addEventListener( 'pointerlockerror', pointerlockerror, false );
-        document.addEventListener( 'mozpointerlockerror', pointerlockerror, false );
-        document.addEventListener( 'webkitpointerlockerror', pointerlockerror, false );
-
-        instructions.addEventListener( 'click', function ( event ) {
-            instructions.style.display = 'none';
-
-            // Ask the browser to lock the pointer
-            element.requestPointerLock = element.requestPointerLock || element.mozRequestPointerLock || element.webkitRequestPointerLock;
-
-            if ( /Firefox/i.test( navigator.userAgent ) ) {
-
-                var fullscreenchange = function ( event ) {
-
-                    if ( document.fullscreenElement === element || document.mozFullscreenElement === element || document.mozFullScreenElement === element ) {
-
-                        document.removeEventListener( 'fullscreenchange', fullscreenchange );
-                        document.removeEventListener( 'mozfullscreenchange', fullscreenchange );
-
-                        element.requestPointerLock();
-                    }
-
-                }
-
-                document.addEventListener( 'fullscreenchange', fullscreenchange, false );
-                document.addEventListener( 'mozfullscreenchange', fullscreenchange, false );
-
-                element.requestFullscreen = element.requestFullscreen || element.mozRequestFullscreen || element.mozRequestFullScreen || element.webkitRequestFullscreen;
-
-                element.requestFullscreen();
-
-            } else {
-
-                element.requestPointerLock();
-
-            }
-
-        }, false );
-
-    } else {
-        instructions.innerHTML = 'Your browser doesn\'t seem to support Pointer Lock API';
-    }
-};
-
 
 function initCannon() {
     // Setup our world
@@ -181,6 +102,7 @@ function initCannon() {
     });
 }
 
+var rendererId = "renderer";
 var initScene = function() {
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
     scene = new THREE.Scene();
@@ -190,30 +112,31 @@ var initScene = function() {
     scene.add( ambient );
 
     light = new THREE.SpotLight( 0xffffff );
-    light.position.set( 10, 30, 20 );
+    light.position.set( 10, 60, 20 );
     light.target.position.set( 0, 0, 0 );
     if(true){
         light.castShadow = true;
 
-        light.shadowCameraNear = 20;
-        light.shadowCameraFar = 50;//camera.far;
-        light.shadowCameraFov = 40;
+        light.shadow.camera.near = 20;
+        light.shadow.camera.far = 50;
+        light.shadow.camera.fov = 40;
 
         light.shadowMapBias = 0.1;
         light.shadowMapDarkness = 0.7;
-        light.shadowMapWidth = 2*512;
-        light.shadowMapHeight = 2*512;
+        light.shadow.mapSize.Width = 2*512;
+        light.shadow.mapSize.Height = 2*512;
 
         //light.shadowCameraVisible = true;
     }
     scene.add( light );
 
     renderer = new THREE.WebGLRenderer();
-    renderer.shadowMapEnabled = true;
+    renderer.shadowMap.enabled = true;
     renderer.shadowMapSoft = true;
     renderer.setSize( window.innerWidth, window.innerHeight );
     renderer.setClearColor( scene.fog.color, 1 );
 
+    renderer.domElement.id = rendererId;
     document.body.appendChild( renderer.domElement );
 }
 
@@ -371,6 +294,8 @@ var shootBall = function() {
 };
 
 var clearScene = function(scene) {
+    var renderer = document.getElementById(rendererId);
+    renderer.parentNode.removeChild(renderer);
     var i;
     for(i=0; i < scene.children.length; i++){
         var obj = scene.children[i];
@@ -385,12 +310,16 @@ var initOnce = function() {
     initCannon();
     init();
     initControls();
+    requirePointerLock();
     window.addEventListener( 'resize', onWindowResize, false );
 }
 
 var resetGame = function() {
     clearScene(scene);
+    initScene();
+    initCannon();
     init();
+    initControls();
 }
 
 initOnce();
