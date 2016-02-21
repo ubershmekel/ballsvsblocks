@@ -71,7 +71,7 @@
     binds[keyboard.keyCodes.right] = commands.right;
     binds[keyboard.keyCodes.d] =     commands.right;
     binds[keyboard.keyCodes.space] = commands.fly;
-
+    
     var updateCommands = function() {
         var commandsCalled = {};
         Object.keys(keyboard.keysDown).forEach(function(keyCode,index) {

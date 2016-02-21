@@ -5,13 +5,13 @@ var sphereBody;
 var world;
 var physicsMaterial;
 var cannonBallMat;
-var balls = [];
-var ballMeshes = [];
-var boxes = [];
-var boxMeshes = [];
+var balls;
+var ballMeshes;
+var boxes;
+var boxMeshes;
 
 var camera, scene, renderer;
-var geometry, material, mesh;
+var planeGeometry, material, mesh;
 var controls;
 var time = Date.now();
 
@@ -41,6 +41,16 @@ var redMaterial = new THREE.MeshLambertMaterial( { color: colors.red } );
 var blueMaterial = new THREE.MeshLambertMaterial( { color: colors.blue } );
 
 var initControls = function() {
+    keyboard.keyUpCallbacks[keyboard.keyCodes.r] = function() {
+        resetGame();
+    };
+
+    initPointerLock();
+    controls = new PointerLockControls( camera , sphereBody );
+    scene.add( controls.getObject() );
+}
+
+var initPointerLock = function() {
     var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
     if ( havePointerLock ) {
         var element = document.body;
@@ -164,13 +174,6 @@ function initCannon() {
     sphereBody.linearDamping = 0.9;
     world.add(sphereBody);
 
-    // Create a plane
-    var groundShape = new CANNON.Plane();
-    var groundBody = new CANNON.Body({ mass: 0, material: physicsMaterial });
-    groundBody.addShape(groundShape);
-    groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
-    world.add(groundBody);
-
     world.addEventListener("preStep", function(e) {
         if(controls.enabled && isMouseDown){
             shootBall();
@@ -178,10 +181,8 @@ function initCannon() {
     });
 }
 
-function init() {
-
+var initScene = function() {
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-
     scene = new THREE.Scene();
     scene.fog = new THREE.Fog( colors.skyBlue, 0, 500 );
 
@@ -207,23 +208,6 @@ function init() {
     }
     scene.add( light );
 
-
-
-    controls = new PointerLockControls( camera , sphereBody );
-    scene.add( controls.getObject() );
-
-    // floor
-    geometry = new THREE.PlaneGeometry( 300, 300, 50, 50 );
-    geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
-
-        
-    material = new THREE.MeshLambertMaterial( { color: colors.green } );
-
-    mesh = new THREE.Mesh( geometry, material );
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    scene.add( mesh );
-
     renderer = new THREE.WebGLRenderer();
     renderer.shadowMapEnabled = true;
     renderer.shadowMapSoft = true;
@@ -231,64 +215,70 @@ function init() {
     renderer.setClearColor( scene.fog.color, 1 );
 
     document.body.appendChild( renderer.domElement );
+}
+
+var game = {}
+
+var initPlane = function() {
+    game.createPlane = function() {
+        var groundShape = new CANNON.Plane();
+        var groundBody = new CANNON.Body({ mass: 0, material: physicsMaterial });
+        groundBody.addShape(groundShape);
+        groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
+        world.add(groundBody);
+        game.createPlaneDone(groundBody);
+    };
+    
+    game.createPlaneDone = function() {
+        // floor
+        planeGeometry = new THREE.PlaneGeometry( 300, 300, 50, 50 );
+        planeGeometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
+
+        material = new THREE.MeshLambertMaterial( { color: colors.green } );
+
+        mesh = new THREE.Mesh( planeGeometry, material );
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        scene.add( mesh );
+    };
+    
+    game.createPlane();
+}
+
+function init() {
+    initPlane();
+    balls = [];
+    ballMeshes = [];
+    boxes = [];
+    boxMeshes = [];
+
+    var halfExtents = new CANNON.Vec3(1, 3, 1);
+    var boxGeometry = new THREE.BoxGeometry(halfExtents.x * 2, halfExtents.y * 2, halfExtents.z * 2);
 
     // Add boxes
-    var halfExtents = new CANNON.Vec3(1, 3, 1);
     var boxShape = new CANNON.Box(halfExtents);
-    var boxGeometry = new THREE.BoxGeometry(halfExtents.x * 2, halfExtents.y * 2, halfExtents.z * 2);
-    for(var i = 0; i < 40; i++){
+    game.createBoxDone = function (boxBody) {
+        var boxMesh = new THREE.Mesh( boxGeometry, redMaterial );
+        scene.add(boxMesh);
+        boxMesh.position.set(boxBody.x, boxBody.y, boxBody.z);
+        boxMesh.castShadow = true;
+        boxMesh.receiveShadow = true;
+        boxMeshes.push(boxMesh);
+        boxes.push(boxBody);
+    };
+    game.createBox = function () {
         var x = (Math.random()-0.5) * 60;
         var y = halfExtents.y;
         var z = (Math.random()-0.5) * 60;
         var boxBody = new CANNON.Body({ mass: 5 });
         boxBody.addShape(boxShape);
-        var boxMesh = new THREE.Mesh( boxGeometry, redMaterial );
         world.add(boxBody);
-        scene.add(boxMesh);
         boxBody.position.set(x,y,z);
-        boxMesh.position.set(x,y,z);
-        boxMesh.castShadow = true;
-        boxMesh.receiveShadow = true;
-        boxes.push(boxBody);
-        boxMeshes.push(boxMesh);
-    }
-
-
-    // Add linked boxes
-    var addLinkedBoxes = function() {
-        var size = 0.5;
-        var he = new CANNON.Vec3(size,size,size*0.1);
-        var boxShape = new CANNON.Box(he);
-        var mass = 0;
-        var space = 0.1 * size;
-        var N = 5, last;
-        var boxGeometry = new THREE.BoxGeometry(he.x*2,he.y*2,he.z*2);
-        for(var i=0; i<N; i++){
-            var boxbody = new CANNON.Body({ mass: mass });
-            boxbody.addShape(boxShape);
-            var boxMesh = new THREE.Mesh(boxGeometry, material);
-            boxbody.position.set(5,(N-i)*(size*2+2*space) + size*2+space,0);
-            boxbody.linearDamping = 0.01;
-            boxbody.angularDamping = 0.01;
-            // boxMesh.castShadow = true;
-            boxMesh.receiveShadow = true;
-            world.add(boxbody);
-            scene.add(boxMesh);
-            boxes.push(boxbody);
-            boxMeshes.push(boxMesh);
-
-            if(i!=0){
-                // Connect this body to the last one
-                var c1 = new CANNON.PointToPointConstraint(boxbody,new CANNON.Vec3(-size,size+space,0),last,new CANNON.Vec3(-size,-size-space,0));
-                var c2 = new CANNON.PointToPointConstraint(boxbody,new CANNON.Vec3(size,size+space,0),last,new CANNON.Vec3(size,-size-space,0));
-                world.addConstraint(c1);
-                world.addConstraint(c2);
-            } else {
-                mass=0.3;
-            }
-            last = boxbody;
-        }
+        game.createBoxDone(boxBody);
     };
+    for(var i = 0; i < 40; i++){
+        game.createBox();
+    }
 }
 
 function onWindowResize() {
@@ -380,19 +370,29 @@ var shootBall = function() {
     ballMesh.position.set(x,y,z);
 };
 
+var clearScene = function(scene) {
+    var i;
+    for(i=0; i < scene.children.length; i++){
+        var obj = scene.children[i];
+        scene.remove(obj);
+    }
+}
+
 var initOnce = function() {
     initStats();
     keyboard.init();
+    initScene();
+    initCannon();
+    init();
     initControls();
     window.addEventListener( 'resize', onWindowResize, false );
 }
 
 var resetGame = function() {
-    initCannon();
+    clearScene(scene);
     init();
 }
 
 initOnce();
-resetGame();
 animate();
 
