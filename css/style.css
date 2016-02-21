@@ -48,3 +48,28 @@ body {
     cursor: pointer;
 
 }
+
+#scoreBoard {
+    background-color: #000;
+    color: #fff;
+    position:absolute;
+    padding: 10px;
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, 0);
+}
+
+/*
+    http://stackoverflow.com/questions/1776915/how-to-center-absolute-element-in-div
+*/
+.centeredX {
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, 0);
+}
+.centeredXY {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%,-50%);
+}

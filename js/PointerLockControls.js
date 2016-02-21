@@ -18,14 +18,6 @@
 
     var quat = new THREE.Quaternion();
 
-    var moveForward = false;
-    var moveBackward = false;
-    var moveLeft = false;
-    var moveRight = false;
-
-    var canJump = false;
-    var moveUp = false;
-
     var contactNormal = new CANNON.Vec3(); // Normal in the contact, pointing *out* of whatever the player touched
     var upAxis = new CANNON.Vec3(0,1,0);
     cannonBody.addEventListener("collide",function(e){
@@ -60,73 +52,38 @@
         pitchObject.rotation.x = Math.max( - PI_2, Math.min( PI_2, pitchObject.rotation.x ) );
     };
 
-    var onKeyDown = function ( event ) {
+    var binds = {};
+    var commands = {
+        forward: 'forward',
+        back: 'back',
+        left: 'left',
+        right: 'right',
+        fly: 'fly',
+        look: 'look'
+    };
+    
+    binds[keyboard.keyCodes.up] =    commands.forward;
+    binds[keyboard.keyCodes.w] =     commands.forward;
+    binds[keyboard.keyCodes.left] =  commands.left;
+    binds[keyboard.keyCodes.a] =     commands.left;
+    binds[keyboard.keyCodes.down] =  commands.back;
+    binds[keyboard.keyCodes.s] =     commands.back;
+    binds[keyboard.keyCodes.right] = commands.right;
+    binds[keyboard.keyCodes.d] =     commands.right;
+    binds[keyboard.keyCodes.space] = commands.fly;
 
-        switch ( event.keyCode ) {
-
-            case 38: // up
-            case 87: // w
-                moveForward = true;
-                break;
-
-            case 37: // left
-            case 65: // a
-                moveLeft = true; break;
-
-            case 40: // down
-            case 83: // s
-                moveBackward = true;
-                break;
-
-            case 39: // right
-            case 68: // d
-                moveRight = true;
-                break;
-
-            case 32: // space
-                moveUp = true;
-                //if ( canJump === true ){
-                //    velocity.y = jumpVelocity;
-                //}
-                //canJump = false;
-                break;
-        }
-
+    var updateCommands = function() {
+        var commandsCalled = {};
+        Object.keys(keyboard.keysDown).forEach(function(keyCode,index) {
+            var bound = binds[keyCode];
+            if(bound !== undefined)
+                commandsCalled[bound] = true;
+        });
+        return commandsCalled;
     };
 
-    var onKeyUp = function ( event ) {
-
-        switch( event.keyCode ) {
-
-            case 38: // up
-            case 87: // w
-                moveForward = false;
-                break;
-
-            case 37: // left
-            case 65: // a
-                moveLeft = false;
-                break;
-
-            case 40: // down
-            case 83: // a
-                moveBackward = false;
-                break;
-
-            case 39: // right
-            case 68: // d
-                moveRight = false;
-                break;
-            case 32: // space
-                moveUp = false;
-                break;
-        }
-
-    };
 
     document.addEventListener( 'mousemove', onMouseMove, false );
-    document.addEventListener( 'keydown', onKeyDown, false );
-    document.addEventListener( 'keyup', onKeyUp, false );
 
     this.enabled = false;
 
@@ -150,21 +107,22 @@
 
         inputVelocity.set(0,0,0);
 
-        if ( moveForward ){
+        var commandsCalled = updateCommands();
+        if ( commandsCalled[commands.forward] ){
             inputVelocity.z = -velocityFactor * delta;
         }
-        if ( moveBackward ){
+        if ( commandsCalled[commands.back] ){
             inputVelocity.z = velocityFactor * delta;
         }
 
-        if ( moveLeft ){
+        if ( commandsCalled[commands.left] ){
             inputVelocity.x = -velocityFactor * delta;
         }
-        if ( moveRight ){
+        if ( commandsCalled[commands.right] ){
             inputVelocity.x = velocityFactor * delta;
         }
-        if (moveUp) {
-            cannonBody.force.y = 300;
+        if (commandsCalled[commands.fly]) {
+            cannonBody.force.y = 300 * delta;
             //velocity.y = jumpVelocity;
         }
 

@@ -1,9 +1,19 @@
 
-var sphereShape, sphereBody, world, physicsMaterial, walls=[], balls=[], ballMeshes=[], boxes=[], boxMeshes=[];
+
+var sphereShape;
+var sphereBody;
+var world;
+var physicsMaterial;
+var cannonBallMat;
+var balls = [];
+var ballMeshes = [];
+var boxes = [];
+var boxMeshes = [];
 
 var camera, scene, renderer;
 var geometry, material, mesh;
-var controls,time = Date.now();
+var controls;
+var time = Date.now();
 
 var blocker = document.getElementById( 'blocker' );
 var instructions = document.getElementById( 'instructions' );
@@ -22,9 +32,6 @@ var initStats = function() {
     document.body.appendChild( stats.domElement );
 };
 
-initStats();
-
-var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
 var colors = {};
 colors.green = 0x99ff99;
 colors.red =   0xff9999;
@@ -33,91 +40,86 @@ colors.skyBlue = 0xddddff;
 var redMaterial = new THREE.MeshLambertMaterial( { color: colors.red } );
 var blueMaterial = new THREE.MeshLambertMaterial( { color: colors.blue } );
 
-if ( havePointerLock ) {
+var initControls = function() {
+    var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
+    if ( havePointerLock ) {
+        var element = document.body;
+        var pointerlockchange = function ( event ) {
+            if ( document.pointerLockElement === element || document.mozPointerLockElement === element || document.webkitPointerLockElement === element ) {
 
-    var element = document.body;
+                controls.enabled = true;
 
-    var pointerlockchange = function ( event ) {
+                blocker.style.display = 'none';
 
-        if ( document.pointerLockElement === element || document.mozPointerLockElement === element || document.webkitPointerLockElement === element ) {
+            } else {
 
-            controls.enabled = true;
+                controls.enabled = false;
 
-            blocker.style.display = 'none';
+                blocker.style.display = '-webkit-box';
+                blocker.style.display = '-moz-box';
+                blocker.style.display = 'box';
 
-        } else {
-
-            controls.enabled = false;
-
-            blocker.style.display = '-webkit-box';
-            blocker.style.display = '-moz-box';
-            blocker.style.display = 'box';
-
-            instructions.style.display = '';
-
-        }
-
-    }
-
-    var pointerlockerror = function ( event ) {
-        instructions.style.display = '';
-    }
-
-    // Hook pointer lock state change events
-    document.addEventListener( 'pointerlockchange', pointerlockchange, false );
-    document.addEventListener( 'mozpointerlockchange', pointerlockchange, false );
-    document.addEventListener( 'webkitpointerlockchange', pointerlockchange, false );
-
-    document.addEventListener( 'pointerlockerror', pointerlockerror, false );
-    document.addEventListener( 'mozpointerlockerror', pointerlockerror, false );
-    document.addEventListener( 'webkitpointerlockerror', pointerlockerror, false );
-
-    instructions.addEventListener( 'click', function ( event ) {
-        instructions.style.display = 'none';
-
-        // Ask the browser to lock the pointer
-        element.requestPointerLock = element.requestPointerLock || element.mozRequestPointerLock || element.webkitRequestPointerLock;
-
-        if ( /Firefox/i.test( navigator.userAgent ) ) {
-
-            var fullscreenchange = function ( event ) {
-
-                if ( document.fullscreenElement === element || document.mozFullscreenElement === element || document.mozFullScreenElement === element ) {
-
-                    document.removeEventListener( 'fullscreenchange', fullscreenchange );
-                    document.removeEventListener( 'mozfullscreenchange', fullscreenchange );
-
-                    element.requestPointerLock();
-                }
+                instructions.style.display = '';
 
             }
 
-            document.addEventListener( 'fullscreenchange', fullscreenchange, false );
-            document.addEventListener( 'mozfullscreenchange', fullscreenchange, false );
+        };
 
-            element.requestFullscreen = element.requestFullscreen || element.mozRequestFullscreen || element.mozRequestFullScreen || element.webkitRequestFullscreen;
+        var pointerlockerror = function ( event ) {
+            instructions.style.display = '';
+        };
 
-            element.requestFullscreen();
+        // Hook pointer lock state change events
+        document.addEventListener( 'pointerlockchange', pointerlockchange, false );
+        document.addEventListener( 'mozpointerlockchange', pointerlockchange, false );
+        document.addEventListener( 'webkitpointerlockchange', pointerlockchange, false );
 
-        } else {
+        document.addEventListener( 'pointerlockerror', pointerlockerror, false );
+        document.addEventListener( 'mozpointerlockerror', pointerlockerror, false );
+        document.addEventListener( 'webkitpointerlockerror', pointerlockerror, false );
 
-            element.requestPointerLock();
+        instructions.addEventListener( 'click', function ( event ) {
+            instructions.style.display = 'none';
 
-        }
+            // Ask the browser to lock the pointer
+            element.requestPointerLock = element.requestPointerLock || element.mozRequestPointerLock || element.webkitRequestPointerLock;
 
-    }, false );
+            if ( /Firefox/i.test( navigator.userAgent ) ) {
 
-} else {
+                var fullscreenchange = function ( event ) {
 
-    instructions.innerHTML = 'Your browser doesn\'t seem to support Pointer Lock API';
+                    if ( document.fullscreenElement === element || document.mozFullscreenElement === element || document.mozFullScreenElement === element ) {
 
-}
+                        document.removeEventListener( 'fullscreenchange', fullscreenchange );
+                        document.removeEventListener( 'mozfullscreenchange', fullscreenchange );
 
-initCannon();
-init();
-animate();
+                        element.requestPointerLock();
+                    }
 
-function initCannon(){
+                }
+
+                document.addEventListener( 'fullscreenchange', fullscreenchange, false );
+                document.addEventListener( 'mozfullscreenchange', fullscreenchange, false );
+
+                element.requestFullscreen = element.requestFullscreen || element.mozRequestFullscreen || element.mozRequestFullScreen || element.webkitRequestFullscreen;
+
+                element.requestFullscreen();
+
+            } else {
+
+                element.requestPointerLock();
+
+            }
+
+        }, false );
+
+    } else {
+        instructions.innerHTML = 'Your browser doesn\'t seem to support Pointer Lock API';
+    }
+};
+
+
+function initCannon() {
     // Setup our world
     world = new CANNON.World();
     world.quatNormalizeSkip = 0;
@@ -146,8 +148,12 @@ function initCannon(){
                                                             0.0, // friction coefficient
                                                             0.3  // restitution
                                                             );
+    
     // We must add the contact materials to the world
     world.addContactMaterial(physicsContactMaterial);
+    cannonBallMat = new CANNON.Material();
+    var cannonBallMatContact = new CANNON.ContactMaterial(physicsMaterial, cannonBallMat, { friction: 0.0, restitution: 0.8 });
+    world.addContactMaterial(cannonBallMatContact);
 
     // Create a sphere
     var mass = 5, radius = 1.3;
@@ -164,6 +170,12 @@ function initCannon(){
     groundBody.addShape(groundShape);
     groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
     world.add(groundBody);
+
+    world.addEventListener("preStep", function(e) {
+        if(controls.enabled && isMouseDown){
+            shootBall();
+        }
+    });
 }
 
 function init() {
@@ -173,7 +185,7 @@ function init() {
     scene = new THREE.Scene();
     scene.fog = new THREE.Fog( colors.skyBlue, 0, 500 );
 
-    var ambient = new THREE.AmbientLight( 0x333333 );
+    var ambient = new THREE.AmbientLight( 0x555555 );
     scene.add( ambient );
 
     light = new THREE.SpotLight( 0xffffff );
@@ -220,8 +232,6 @@ function init() {
 
     document.body.appendChild( renderer.domElement );
 
-    window.addEventListener( 'resize', onWindowResize, false );
-
     // Add boxes
     var halfExtents = new CANNON.Vec3(1, 3, 1);
     var boxShape = new CANNON.Box(halfExtents);
@@ -245,38 +255,40 @@ function init() {
 
 
     // Add linked boxes
-    var size = 0.5;
-    var he = new CANNON.Vec3(size,size,size*0.1);
-    var boxShape = new CANNON.Box(he);
-    var mass = 0;
-    var space = 0.1 * size;
-    var N = 5, last;
-    var boxGeometry = new THREE.BoxGeometry(he.x*2,he.y*2,he.z*2);
-    for(var i=0; i<N; i++){
-        var boxbody = new CANNON.Body({ mass: mass });
-        boxbody.addShape(boxShape);
-        var boxMesh = new THREE.Mesh(boxGeometry, material);
-        boxbody.position.set(5,(N-i)*(size*2+2*space) + size*2+space,0);
-        boxbody.linearDamping = 0.01;
-        boxbody.angularDamping = 0.01;
-        // boxMesh.castShadow = true;
-        boxMesh.receiveShadow = true;
-        world.add(boxbody);
-        scene.add(boxMesh);
-        boxes.push(boxbody);
-        boxMeshes.push(boxMesh);
+    var addLinkedBoxes = function() {
+        var size = 0.5;
+        var he = new CANNON.Vec3(size,size,size*0.1);
+        var boxShape = new CANNON.Box(he);
+        var mass = 0;
+        var space = 0.1 * size;
+        var N = 5, last;
+        var boxGeometry = new THREE.BoxGeometry(he.x*2,he.y*2,he.z*2);
+        for(var i=0; i<N; i++){
+            var boxbody = new CANNON.Body({ mass: mass });
+            boxbody.addShape(boxShape);
+            var boxMesh = new THREE.Mesh(boxGeometry, material);
+            boxbody.position.set(5,(N-i)*(size*2+2*space) + size*2+space,0);
+            boxbody.linearDamping = 0.01;
+            boxbody.angularDamping = 0.01;
+            // boxMesh.castShadow = true;
+            boxMesh.receiveShadow = true;
+            world.add(boxbody);
+            scene.add(boxMesh);
+            boxes.push(boxbody);
+            boxMeshes.push(boxMesh);
 
-        if(i!=0){
-            // Connect this body to the last one
-            var c1 = new CANNON.PointToPointConstraint(boxbody,new CANNON.Vec3(-size,size+space,0),last,new CANNON.Vec3(-size,-size-space,0));
-            var c2 = new CANNON.PointToPointConstraint(boxbody,new CANNON.Vec3(size,size+space,0),last,new CANNON.Vec3(size,-size-space,0));
-            world.addConstraint(c1);
-            world.addConstraint(c2);
-        } else {
-            mass=0.3;
+            if(i!=0){
+                // Connect this body to the last one
+                var c1 = new CANNON.PointToPointConstraint(boxbody,new CANNON.Vec3(-size,size+space,0),last,new CANNON.Vec3(-size,-size-space,0));
+                var c2 = new CANNON.PointToPointConstraint(boxbody,new CANNON.Vec3(size,size+space,0),last,new CANNON.Vec3(size,-size-space,0));
+                world.addConstraint(c1);
+                world.addConstraint(c2);
+            } else {
+                mass=0.3;
+            }
+            last = boxbody;
         }
-        last = boxbody;
-    }
+    };
 }
 
 function onWindowResize() {
@@ -316,7 +328,7 @@ var ballGeometry = new THREE.SphereGeometry(ballShape.radius, 32, 32);
 var shootDirection = new THREE.Vector3();
 var shootVelo = 15;
 //var projector = new THREE.Projector();
-function getShootDir(targetVec){
+function getShootDir(targetVec) {
     var vector = targetVec;
     targetVec.set(0,0,1);
     //projector.unprojectVector(vector, camera);
@@ -325,22 +337,12 @@ function getShootDir(targetVec){
     targetVec.copy(ray.direction);
 }
 
-var cannonBallMat = new CANNON.Material();
-var cannonBallMatContact = new CANNON.ContactMaterial(physicsMaterial, cannonBallMat, { friction: 0.0, restitution: 0.8 });
-world.addContactMaterial(cannonBallMatContact);
-
 var isMouseDown = false;
 window.addEventListener("mousedown",function(e) {
     isMouseDown = true;
 });
 window.addEventListener("mouseup",function(e) {
     isMouseDown = false;
-});
-
-world.addEventListener("preStep", function(e) {
-    if(controls.enabled && isMouseDown){
-        shootBall();
-    }
 });
 
 var maxBalls = 100;
@@ -355,7 +357,7 @@ var shootBall = function() {
     var x = sphereBody.position.x;
     var y = sphereBody.position.y;
     var z = sphereBody.position.z;
-    var ballBody = new CANNON.Body({ mass: 1, material: cannonBallMat });
+    var ballBody = new CANNON.Body({ mass: 3, material: cannonBallMat });
     ballBody.addShape(ballShape);
     ballBody.linearDamping = 0.01;
     var ballMesh = new THREE.Mesh( ballGeometry, blueMaterial );
@@ -377,4 +379,20 @@ var shootBall = function() {
     ballBody.position.set(x,y,z);
     ballMesh.position.set(x,y,z);
 };
+
+var initOnce = function() {
+    initStats();
+    keyboard.init();
+    initControls();
+    window.addEventListener( 'resize', onWindowResize, false );
+}
+
+var resetGame = function() {
+    initCannon();
+    init();
+}
+
+initOnce();
+resetGame();
+animate();
 

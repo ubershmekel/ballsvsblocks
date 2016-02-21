@@ -8,11 +8,18 @@
         <link rel="shortcut icon" href="/favicon.ico" />
     </head>
     <body>
+        <div id="scoreBoard" class="centeredX">
+            <span id="blocksRemaining">0</span> blocks left to knock down
+        </div>
         <div id="blocker">
             <div id="instructions">
                 <span style="font-size:40px">Click to play</span>
                 <br />
-                (W,A,S,D = Move, SPACE = Jump, MOUSE = Look, CLICK = Shoot)
+                W,A,S,D = Move
+                <br />SPACE = Fly
+                <br />MOUSE = Look
+                <br />CLICK = Shoot
+                <br />R = Reset
             </div>
         </div>
 
@@ -20,6 +27,7 @@
         <script src="libs/cannon.js/build/cannon.js"></script>
         <script src="libs/stats.js/build/stats.min.js"></script>
         <script src="js/PointerLockControls.js"></script>
+        <script src="js/keyboard.js"></script>
         <script src="js/main.js"></script>
     </body>
 </html>
