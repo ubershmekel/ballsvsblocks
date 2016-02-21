@@ -41,6 +41,8 @@ colors.skyBlue = 0xddddff;
 var redMaterial = new THREE.MeshLambertMaterial( { color: colors.red } );
 var blueMaterial = new THREE.MeshLambertMaterial( { color: colors.blue } );
 
+var initialBoxesCount = 40;
+
 var initControls = function() {
     keyboard.keyUpCallbacks[keyboard.keyCodes.r] = function() {
         resetGame();
@@ -51,6 +53,8 @@ var initControls = function() {
 }
 
 function initCannon() {
+    game.start = Date.now();
+
     // Setup our world
     world = new CANNON.World();
     world.quatNormalizeSkip = 0;
@@ -198,7 +202,7 @@ function init() {
         boxBody.position.set(x,y,z);
         game.createBoxDone(boxBody);
     };
-    for(var i = 0; i < 40; i++){
+    for(var i = 0; i < initialBoxesCount; i++){
         game.createBox();
     }
 }
@@ -240,7 +244,25 @@ game.tick = function() {
             everFallen += 1;
     }
     game.boxesLeft = boxes.length - everFallen;
+    
+    if (game.boxesLeft == 0) {
+        game.duration = Date.now() - game.start;
+    }
 }
+
+var endGame = function(duration) {
+    if(scene.gameOver)
+        // run this once
+        return;
+    scene.gameOver = true;
+    var div = document.createElement('div');
+    div.className = 'centeredXY';
+    div.id = 'gameOver';
+    div.innerHTML = 'You have defeated the red blocks in ' + duration / 1000 + ' seconds';
+    document.body.appendChild(div);
+    
+    setTimeout(function() { div.parentNode.removeChild(div); }, 4000);
+};
 
 game.tickGraphics = function() {
     // Update ball positions
@@ -258,6 +280,9 @@ game.tickGraphics = function() {
         }
     }
     
+    if (game.boxesLeft == 0) {
+        endGame(game.duration);
+    } 
     document.getElementById("blocksRemaining").innerHTML = game.boxesLeft;
     renderer.render( scene, camera );
 }
