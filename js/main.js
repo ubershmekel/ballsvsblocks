@@ -14,7 +14,7 @@ var light;
 var camera, scene, renderer;
 var planeGeometry, material, mesh;
 var controls;
-var time = Date.now();
+var lastFrameTime = Date.now();
 
 var blocker = document.getElementById( 'blocker' );
 var instructions = document.getElementById( 'instructions' );
@@ -213,33 +213,53 @@ var dt = 1/60;
 function animate() {
     stats.begin();
     requestAnimationFrame( animate );
+    game.tick();
+    game.tickGraphics();
+    lastFrameTime = Date.now();
+    stats.end();
+}
+
+game.tick = function() {
     if(controls.enabled){
         world.step(dt);
-
-        // Update ball positions
-        for(var i=0; i < balls.length; i++){
-            ballMeshes[i].position.copy(balls[i].position);
-            ballMeshes[i].quaternion.copy(balls[i].quaternion);
-        }
-
-        // Update box positions
-        for(var i=0; i < boxes.length; i++){
-            boxMeshes[i].position.copy(boxes[i].position);
-            boxMeshes[i].quaternion.copy(boxes[i].quaternion);
-            if(isBoxFallen(boxes[i])) {
-                //console.log('boom');
-                boxMeshes[i].material = blueMaterial;
-            }
-        }
     }
 
-    controls.update( Date.now() - time );
+    controls.update( Date.now() - lastFrameTime );
     if(controls.enabled && isMouseDown){
         shootBall();
     }
+    
+    for(var i = 0; i < boxes.length; i++){
+        if(isBoxFallen(boxes[i])) {
+            boxes[i].fallen = true;
+        }
+    }
+    var everFallen = 0;
+    for(var i = 0; i < boxes.length; i++) {
+        if(boxes[i].fallen)
+            everFallen += 1;
+    }
+    game.boxesLeft = boxes.length - everFallen;
+}
+
+game.tickGraphics = function() {
+    // Update ball positions
+    for(var i=0; i < balls.length; i++){
+        ballMeshes[i].position.copy(balls[i].position);
+        ballMeshes[i].quaternion.copy(balls[i].quaternion);
+    }
+
+    // Update box positions
+    for(var i=0; i < boxes.length; i++){
+        boxMeshes[i].position.copy(boxes[i].position);
+        boxMeshes[i].quaternion.copy(boxes[i].quaternion);
+        if(boxes[i].fallen) {
+            boxMeshes[i].material = blueMaterial;
+        }
+    }
+    
+    document.getElementById("blocksRemaining").innerHTML = game.boxesLeft;
     renderer.render( scene, camera );
-    time = Date.now();
-    stats.end();
 }
 
 var ballShape = new CANNON.Sphere(0.2);
