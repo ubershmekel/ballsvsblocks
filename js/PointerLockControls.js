@@ -13,12 +13,14 @@ var requirePointerLock = function() {
             if ( document.pointerLockElement === element || document.mozPointerLockElement === element || document.webkitPointerLockElement === element ) {
 
                 controls.enabled = true;
+                events.fire(events.events.unpause); 
 
                 blocker.style.display = 'none';
 
             } else {
 
                 controls.enabled = false;
+                events.fire(events.events.pause); 
 
                 blocker.style.display = '-webkit-box';
                 blocker.style.display = '-moz-box';

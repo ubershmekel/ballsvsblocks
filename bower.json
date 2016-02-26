@@ -21,6 +21,8 @@
   "dependencies": {
     "cannon.js": "^0.6.2",
     "three.js": "^0.74.0",
-    "stats.js": "*"
+    "stats.js": "*",
+    "howler.js": "^1.1.29",
+    "eventEmitter": "^4.3.0"
   }
 }
