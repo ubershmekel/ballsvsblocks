@@ -99,6 +99,7 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js', 'js/
         var mass = 5, radius = 1.3;
         sphereShape = new CANNON.Sphere(radius);
         sphereBody = new CANNON.Body({ mass: mass });
+        sphereBody.gameType = bodyTypes.player;
         sphereBody.addShape(sphereShape);
         sphereBody.position.set(0,5,0);
         sphereBody.linearDamping = 0.9;
@@ -150,6 +151,7 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js', 'js/
         game.createPlane = function() {
             var groundShape = new CANNON.Plane();
             var groundBody = new CANNON.Body({ mass: 0, material: physicsMaterial });
+            groundBody.gameType = bodyTypes.ground;
             groundBody.addShape(groundShape);
             groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
             world.add(groundBody);
@@ -174,6 +176,13 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js', 'js/
 
     var isBoxFallen = function(boxBody) {
         return Math.abs(boxBody.quaternion.x) > 0.5 || Math.abs(boxBody.quaternion.z) > 0.5;
+    }
+
+    var bodyTypes = {
+        box: "box",
+        ball: "ball",
+        ground: "ground",
+        player: "player"
     }
 
     function init() {
@@ -202,11 +211,13 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js', 'js/
             var y = halfExtents.y + 10;
             var z = (Math.random()-0.5) * 60;
             var boxBody = new CANNON.Body({ mass: 5 });
+            boxBody.gameType = bodyTypes.box;
             boxBody.addShape(boxShape);
             world.add(boxBody);
             boxBody.position.set(x,y,z);
             game.createBoxDone(boxBody);
         };
+        
         for(var i = 0; i < initialBoxesCount; i++){
             game.createBox();
         }
@@ -344,6 +355,7 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js', 'js/
         var y = sphereBody.position.y;
         var z = sphereBody.position.z;
         var ballBody = new CANNON.Body({ mass: 3, material: cannonBallMat });
+        ballBody.gameType = bodyTypes.ball;
         ballBody.addShape(ballShape);
         ballBody.linearDamping = 0.01;
         var ballMesh = new THREE.Mesh( ballGeometry, blueMaterial );
@@ -364,6 +376,28 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js', 'js/
         z += shootDirection.z * (sphereShape.radius*1.02 + ballShape.radius);
         ballBody.position.set(x,y,z);
         ballMesh.position.set(x,y,z);
+        
+        ballBody.addEventListener("collide", function(e) {
+            var targetType = e.body.gameType;
+            if((targetType == bodyTypes.ground || targetType == bodyTypes.box)) {
+                var contactNormal = e.contact.ni;
+                var contactPower = ballBody.velocity.dot(contactNormal);
+                if(contactPower > 2) {
+                    // `2` because that seems when the impact should be silent.
+                    //console.log(contactPower);
+                    var volume = contactPower / 20.0;
+                    var instance = sounds.ballBounce.play();
+                    instance.volume(volume);
+                    instance.pos3d(ballBody.position.x, ballBody.position.y, ballBody.position.z );
+                }
+                // && Math.abs(ballBody.velocity.y) > 5) {
+                //console.log('bounce', e.contact.ri, e.contact.rj, e.contact.ni)
+                //console.log('bounce', , e.contact.ni);
+                //console.log("The sphere just collided with the ground!", ballBody.velocity);
+                //console.log("Collided with body:", e.body);
+                //console.log("Contact between bodies:", e.contact);
+            }
+        });
     };
 
     var clearScene = function(scene) {
@@ -376,14 +410,20 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js', 'js/
         }
     }
 
-    var sounds = {
+    var sounds = {};
+    var soundNames = {
         bubbles: 'bubbles',
+        ballBounce: 'ballBounce'
     };
     
     var loadSounds = function() {
-        sounds[sounds.bubbles] = new Howl({
+        sounds[soundNames.bubbles] = new Howl({
             urls: ['audio/bubbles.ogg'],
             loop: true
+        });
+        sounds[soundNames.ballBounce] = new Howl({
+            urls: ['audio/tennis_ball_single_bounce_floor_001.mp3'],
+            loop: false
         });
     }
 
