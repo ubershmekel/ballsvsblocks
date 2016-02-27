@@ -1,9 +1,18 @@
-var events = {};
+define([], function() {
+    var exports = {
+        
+    };
+    
+    exports.names = {
+        pause: 'pause',
+        unpause: 'unpause'
+    }
+    
+    return exports;
+})
 
-events.names = {
-    pause: 'pause',
-    unpause: 'unpause'
-}
+/*var events = {};
+
 
 events.events = {};
 events.events[events.names.pause] = new Event(events.pause);
@@ -20,3 +29,4 @@ events.fire = function(event) {
     // Dispatch the event.
     events.elem.dispatchEvent(event);
 }
+*/

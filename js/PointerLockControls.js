@@ -4,7 +4,7 @@
  * @author ubershmekel / https://github.com/ubershmekel
  */
 
-var requirePointerLock = function() {
+var requirePointerLock = function(ee) {
     controls.enabled = false;
     var supportsPointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
     if ( supportsPointerLock ) {
@@ -13,14 +13,14 @@ var requirePointerLock = function() {
             if ( document.pointerLockElement === element || document.mozPointerLockElement === element || document.webkitPointerLockElement === element ) {
 
                 controls.enabled = true;
-                events.fire(events.events.unpause); 
+                ee.trigger('unpause'); 
 
                 blocker.style.display = 'none';
 
             } else {
 
                 controls.enabled = false;
-                events.fire(events.events.pause); 
+                ee.trigger('pause'); 
 
                 blocker.style.display = '-webkit-box';
                 blocker.style.display = '-moz-box';

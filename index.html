@@ -6,6 +6,16 @@
         <meta name="description" content="cannon.js + three.js physics ball shooter" />
         <link rel="stylesheet" type="text/css" href="css/style.css">
         <link rel="shortcut icon" href="/favicon.ico" />
+        <script>
+            window.onerror = function(msg, url, linenumber) {
+                // Tell users when errors occur
+                // http://stackoverflow.com/questions/2604976/javascript-how-to-display-script-errors-in-a-popup-alert/2604997#2604997
+                var errMessage = msg + '\nURL: ' + url + '\nLine Number: '+ linenumber;
+                alert("An error: " + errMessage)
+                // report on dev console too
+                return false;
+            };
+        </script>
     </head>
     <body>
         <div id="scoreBoard" class="centeredX">
@@ -29,7 +39,6 @@
         <script src="libs/cannon.js/build/cannon.js"></script>
         <script src="libs/stats.js/build/stats.min.js"></script>
         <script src="js/PointerLockControls.js"></script>
-        <script src="js/events.js"></script>
         <script src="js/keyboard.js"></script>
         <script src="js/main.js"></script>
 

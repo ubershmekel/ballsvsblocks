@@ -1,4 +1,7 @@
-requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js'], function(EventEmitter, howl) {
+var controls;
+
+
+requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js', 'js/clientEvents.js'], function(EventEmitter, howl, clientEvents) {
     var sphereShape;
     var sphereBody;
     var world;
@@ -12,7 +15,6 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js'], fun
 
     var camera, scene, renderer;
     var planeGeometry, material, mesh;
-    var controls;
     var lastFrameTime = Date.now();
 
     var blocker = document.getElementById( 'blocker' );
@@ -21,7 +23,6 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js'], fun
     var ee = new EventEmitter();
     var Howler = howl.Howler;
     var Howl = howl.Howl;
-    alert(ee);
 
     var stats;
     var initStats = function() {
@@ -227,25 +228,31 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js'], fun
         stats.end();
     }
 
-    events.subscribe(events.names.pause, function() {
-        alert(1);
+    ee.on(clientEvents.names.pause, function() {
         //sounds.bubbles.pause();
         Howler.mute();
     });
 
-    events.subscribe(events.names.unpause, function() {
+    ee.on(clientEvents.names.unpause, function() {
         //sounds.bubbles.play();
         Howler.unmute();
     });
 
     game.tick = function() {
-        if(controls.enabled){
-            world.step(dt);
+        if(!controls.enabled){
+            return;
         }
 
+        world.step(dt);
         controls.update( Date.now() - lastFrameTime );
-        if(controls.enabled && isMouseDown) {
+        
+        if(isMouseDown) {
             shootBall();
+            //sounds.bubbles.fade(0, 0.5, 20);
+            sounds.bubbles.volume(0.5);
+        } else {
+            //sounds.bubbles.fade(0.5, 0.0, 200);
+            sounds.bubbles.volume(0);
         }
         
         for(var i = 0; i < boxes.length; i++){
@@ -319,13 +326,9 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js'], fun
     var isMouseDown = false;
     window.addEventListener("mousedown",function(e) {
         isMouseDown = true;
-        //sounds.bubbles.play();
-        sounds.bubbles.fade(0, 0.5, 2000);
     });
     window.addEventListener("mouseup",function(e) {
         isMouseDown = false;
-        //sounds.bubbles.pause();
-        sounds.bubbles.fade(0.5, 0.0, 2000);
     });
 
     var maxBalls = 100;
@@ -392,8 +395,10 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js'], fun
         initCannon();
         init();
         initControls();
-        requirePointerLock();
+        requirePointerLock(ee);
         window.addEventListener( 'resize', onWindowResize, false );
+        
+        sounds.bubbles.volume(0.0);
         sounds.bubbles.play();
     }
 
