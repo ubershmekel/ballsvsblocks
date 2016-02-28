@@ -1,7 +1,10 @@
 var controls;
 
 
-requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js', 'js/clientEvents.js'], function(EventEmitter, howl, clientEvents) {
+requirejs(['libs/eventEmitter/EventEmitter.js', 'js/clientEvents.js'], function(EventEmitter, clientEvents) {
+    var settings = {
+        soundsEnabled: false
+    };
     var sphereShape;
     var sphereBody;
     var world;
@@ -14,6 +17,7 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js', 'js/
     var light;
 
     var camera, scene, renderer;
+    var audioListener;
     var planeGeometry, material, mesh;
     var lastFrameTime = Date.now();
 
@@ -21,8 +25,6 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js', 'js/
     var instructions = document.getElementById( 'instructions' );
     
     var ee = new EventEmitter();
-    var Howler = howl.Howler;
-    var Howl = howl.Howl;
 
     var stats;
     var initStats = function() {
@@ -51,6 +53,10 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js', 'js/
     var initControls = function() {
         keyboard.keyUpCallbacks[keyboard.keyCodes.r] = function() {
             resetGame();
+        };
+
+        keyboard.keyUpCallbacks[keyboard.keyCodes.m] = function() {
+            settings.soundsEnabled = !settings.soundsEnabled;
         };
 
         controls = new PointerLockControls( camera , sphereBody );
@@ -95,7 +101,7 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js', 'js/
         var cannonBallMatContact = new CANNON.ContactMaterial(physicsMaterial, cannonBallMat, { friction: 0.0, restitution: 0.8 });
         world.addContactMaterial(cannonBallMatContact);
 
-        // Create a sphere
+        // Create a sphere for the player's body
         var mass = 5, radius = 1.3;
         sphereShape = new CANNON.Sphere(radius);
         sphereBody = new CANNON.Body({ mass: mass });
@@ -104,12 +110,14 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js', 'js/
         sphereBody.position.set(0,5,0);
         sphereBody.linearDamping = 0.9;
         world.add(sphereBody);
-
     }
 
     var rendererId = "renderer";
     var initScene = function() {
         camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+        audioListener = new THREE.AudioListener();
+        camera.add( audioListener );
+
         scene = new THREE.Scene();
         scene.fog = new THREE.Fog( colors.skyBlue, 0, 500 );
 
@@ -119,7 +127,7 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js', 'js/
         light = new THREE.SpotLight( 0xffffff );
         light.position.set( 10, 60, 20 );
         light.target.position.set( 0, 0, 0 );
-        if(true){
+        if (true) {
             light.castShadow = true;
 
             light.shadow.camera.near = 20;
@@ -241,12 +249,14 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js', 'js/
 
     ee.on(clientEvents.names.pause, function() {
         //sounds.bubbles.pause();
-        Howler.mute();
+        //Howler.mute();
+        // No need because all our sounds are impulses
     });
 
     ee.on(clientEvents.names.unpause, function() {
         //sounds.bubbles.play();
-        Howler.unmute();
+        //Howler.unmute();
+        // No need because all our sounds are impulses
     });
 
     game.tick = function() {
@@ -259,11 +269,10 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js', 'js/
         
         if(isMouseDown) {
             shootBall();
-            //sounds.bubbles.fade(0, 0.5, 20);
-            sounds.bubbles.volume(0.5);
+            if(settings.soundsEnabled)
+                sounds.bubbles.setVolume(0.5);
         } else {
-            //sounds.bubbles.fade(0.5, 0.0, 200);
-            sounds.bubbles.volume(0);
+            sounds.bubbles.setVolume(0);
         }
         
         for(var i = 0; i < boxes.length; i++){
@@ -379,16 +388,27 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js', 'js/
         
         ballBody.addEventListener("collide", function(e) {
             var targetType = e.body.gameType;
-            if((targetType == bodyTypes.ground || targetType == bodyTypes.box)) {
+            if(settings.soundsEnabled && (targetType == bodyTypes.ground || targetType == bodyTypes.box)) {
                 var contactNormal = e.contact.ni;
                 var contactPower = ballBody.velocity.dot(contactNormal);
                 if(contactPower > 2) {
                     // `2` because that seems when the impact should be silent.
                     //console.log(contactPower);
                     var volume = contactPower / 20.0;
-                    var instance = sounds.ballBounce.play();
-                    instance.volume(volume);
-                    instance.pos3d(ballBody.position.x, ballBody.position.y, ballBody.position.z );
+                    var bounceSound = new THREE.PositionalAudio( audioListener );
+                    ///sounds[soundNames.ballBounce] = bounceSound;
+                    var variation = Math.floor(Math.random() * 2);
+                    var url = 'audio/bounce' + variation + '.ogg';
+                    bounceSound.load(url);
+                    
+                    // `setRefDistance` made all the distances sound the same
+                    //bounceSound.setRefDistance( 20 );
+                    bounceSound.autoplay = true;
+                    bounceSound.setVolume(volume);
+                    ballMesh.add(bounceSound);
+                    //var instance = sounds.ballBounce.play();
+                    //instance.volume(volume);
+                    //instance.pos3d(ballBody.position.x, ballBody.position.y, ballBody.position.z );
                 }
                 // && Math.abs(ballBody.velocity.y) > 5) {
                 //console.log('bounce', e.contact.ri, e.contact.rj, e.contact.ni)
@@ -417,29 +437,34 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'libs/howler.js/howler.js', 'js/
     };
     
     var loadSounds = function() {
-        sounds[soundNames.bubbles] = new Howl({
-            urls: ['audio/bubbles.ogg'],
-            loop: true
-        });
-        sounds[soundNames.ballBounce] = new Howl({
-            urls: ['audio/tennis_ball_single_bounce_floor_001.mp3'],
-            loop: false
-        });
+        var bubblesSound = new THREE.Audio( audioListener );
+        bubblesSound.load('audio/bubbles.ogg');
+        bubblesSound.setVolume(0);
+        bubblesSound.autoplay = true;
+        bubblesSound.setLoop(true);
+        sounds[soundNames.bubbles] = bubblesSound;
+        
+        //sounds[soundNames.bubbles] = new Howl({
+        //    urls: ['audio/bubbles.ogg'],
+        //    loop: true
+        //});
+        //sounds[soundNames.ballBounce] = new Howl({
+        //    urls: ['audio/tennis_ball_single_bounce_floor_001.mp3'],
+        //    loop: false
+        //});
+        //mesh1.add( sound1 );
     }
 
     var initOnce = function() {
-        loadSounds();
         initStats();
         keyboard.init();
         initScene();
+        loadSounds();
         initCannon();
         init();
         initControls();
         requirePointerLock(ee);
         window.addEventListener( 'resize', onWindowResize, false );
-        
-        sounds.bubbles.volume(0.0);
-        sounds.bubbles.play();
     }
 
     var resetGame = function() {
