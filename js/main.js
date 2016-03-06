@@ -125,21 +125,25 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'js/clientEvents.js'], function(
         scene.add( ambient );
 
         light = new THREE.SpotLight( 0xffffff );
-        light.position.set( 10, 60, 20 );
+        light.position.set( 0, 60, 0);
         light.target.position.set( 0, 0, 0 );
         if (true) {
             light.castShadow = true;
 
-            light.shadow.camera.near = 20;
-            light.shadow.camera.far = 50;
-            light.shadow.camera.fov = 40;
+            light.shadow.camera.near = 30;
+            light.shadow.camera.far = 120;
+            light.shadow.camera.fov = 70;
 
             light.shadowMapBias = 0.1;
             light.shadowMapDarkness = 0.7;
-            light.shadow.mapSize.Width = 2*512;
-            light.shadow.mapSize.Height = 2*512;
+            light.shadow.mapSize.width = 512*4;
+            light.shadow.mapSize.height = 512*4;
+            light.shadowMaptype = THREE.BasicShadowMap;
+            //light.shadowMaptype = THREE.PCFShadowMap;
+            //light.shadowMaptype = THREE.PCFSoftShadowMap;
 
             //light.shadowCameraVisible = true;
+            //scene.add( new THREE.CameraHelper( light.shadow.camera ) );
         }
         scene.add( light );
 
@@ -168,7 +172,7 @@ requirejs(['libs/eventEmitter/EventEmitter.js', 'js/clientEvents.js'], function(
         
         game.createPlaneDone = function() {
             // floor
-            planeGeometry = new THREE.PlaneGeometry( 300, 300, 50, 50 );
+            planeGeometry = new THREE.PlaneGeometry( 200, 200, 50, 50 );
             planeGeometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
 
             material = new THREE.MeshLambertMaterial( { color: colors.green } );
